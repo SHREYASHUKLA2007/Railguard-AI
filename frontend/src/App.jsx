@@ -8,10 +8,15 @@ import CardDetailModal from './components/CardDetailModal';
 import LiveMonitoringSection from './components/LiveMonitoringSection';
 import IncidentHistorySection from './components/IncidentHistorySection';
 
-// Dynamic API & WebSocket URLs based on current browser window location
-const API_URL = typeof window !== 'undefined' ? window.location.origin + '/api' : '/api';
-const WS_PROTOCOL = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-const WS_URL = typeof window !== 'undefined' ? WS_PROTOCOL + window.location.host + '/ws/monitor' : '';
+// Dynamic API & WebSocket URLs based on environment or current browser window location
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
+const API_URL = BACKEND_URL
+  ? `${BACKEND_URL}/api`
+  : (typeof window !== 'undefined' ? window.location.origin + '/api' : '/api');
+const WS_BASE = BACKEND_URL
+  ? BACKEND_URL.replace(/^http/, 'ws')
+  : (typeof window !== 'undefined' ? (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host : '');
+const WS_URL = WS_BASE ? `${WS_BASE}/ws/monitor` : '';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
