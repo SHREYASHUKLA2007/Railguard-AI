@@ -1,131 +1,201 @@
-# RAILGUARD AI
-**Intelligent Railway Platform Safety Monitoring System**
+# RailGuard AI
+**Intelligent Railway Platform Safety & Threat Monitoring System**
 
-## 1. Project Introduction
-RailGuard AI is a computer vision-based safety system designed to monitor railway platforms. It detects passengers, tracks their movement relative to a virtual danger zone, and evaluates the risk in real-time based on the train's state (Approaching, Stopped, Departing). If a passenger remains in the danger zone for more than the allowed threshold (e.g., 3 seconds) while a train is approaching or departing, the system issues a critical alert and records the incident.
-
-## 2. Features
-- Real-time Train State Detection (Approaching, Stopped, Departing)
-- Passenger Detection and Tracking (YOLOv8 + ByteTrack)
-- Configurable Virtual Danger Zone
-- 3-Second Rule Evaluation Engine
-- Incident Logging (SQLite/PostgreSQL)
-- Live React Dashboard with WebSocket Telemetry
-- Demo/Simulation Mode
-
-## 3. Architecture
-The system consists of:
-- **AI Engine (Python/OpenCV)**: Analyzes video frames, detects objects, manages tracking, and evaluates risk.
-- **Backend API (FastAPI)**: Serves endpoints, manages WebSocket telemetry for the live feed, and records incidents via SQLAlchemy.
-- **Frontend Dashboard (React/Vite)**: A dark-themed, professional dashboard for live monitoring and analytics.
-- **Database**: SQLite (default for demo) or PostgreSQL.
-
-See `ARCHITECTURE.md` for a full system diagram.
-
-## 4. Technologies
-- **Backend**: Python 3, FastAPI, SQLAlchemy, Uvicorn, SQLite/PostgreSQL
-- **AI/CV**: OpenCV, Ultralytics YOLOv8, ByteTrack (lapx)
-- **Frontend**: React, Vite, TailwindCSS, Lucide React, Axios
-
-## 5. Installation
-Ensure you have Python 3 and Node.js installed.
-
-```bash
-# Clone the repository
-# Navigate to the project root
-cd RailGuard-AI
-
-# Create virtual environment
-python -m venv venv
-# Activate on Windows
-.\venv\Scripts\activate
-# Activate on Linux/Mac
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-## 6. PostgreSQL Setup (Optional)
-By default, the system uses SQLite for ease of demonstration. To use PostgreSQL:
-1. Install PostgreSQL.
-2. Create a database `railguard`.
-3. In the project root, create a `.env` file and set the DB URL:
-`DATABASE_URL=postgresql+psycopg://postgres:password@localhost/railguard`
-4. Reinstall requirements with psycopg support (e.g., `pip install psycopg[binary]`).
-
-## 7. Python Setup
-Run `scripts/generate_dummy_video.py` to generate a demo video if you do not have a CCTV recording.
-Download the YOLOv8 model: `curl -o yolov8n.pt -L https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt`
-
-## 8. Frontend Setup
-```bash
-cd frontend
-npm install
-```
-
-## 9. How to Run
-Start the backend API and AI Engine:
-```bash
-# From project root
-.\venv\Scripts\activate
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
-```
-
-Start the React Frontend:
-```bash
-# In a new terminal
-cd frontend
-npm run dev
-```
-
-## 10. How to Upload Video
-1. Open the frontend dashboard (http://localhost:5173).
-2. Click "Upload Video" and select an MP4 file.
-3. If no video is uploaded, the system will look for `data/input/demo.mp4`.
-
-## 11. How to Use Dashboard
-- Click **Start Monitoring** to begin AI processing.
-- The **Live Platform Camera** view shows bounding boxes, danger line, and tracking IDs.
-- The **Active Alerts** panel displays real-time warnings.
-- The **Incident History** and **System Analytics** update automatically.
-
-## 12. How AI Detection Works
-1. `YOLODetector` infers bounding boxes for `person` and `train` classes.
-2. `ByteTrack` assigns consistent tracking IDs.
-3. The `TrainStateDetector` calculates frame-to-frame movement of the train bounding box to determine its state.
-
-## 13. Danger Zone Logic
-The virtual line is defined in `ai_engine/danger_zone/zone_config.json`.
-The mathematical cross-product of the line coordinates and the passenger's feet `(x, y)` coordinate is calculated to determine if the passenger is on the safe or danger side.
-
-## 14. 3-Second Decision Logic
-When a passenger crosses into the danger zone, a timer starts (`danger_enter_time`). If the `danger_duration` reaches 3.0 seconds, the `RiskEngine` evaluates the train state. 
-- Train Approaching + >=3s = CRITICAL
-- Train Departing + >=3s = HIGH
-
-## 15. Database Structure
-Tables:
-- `incidents`: ID, timestamp, camera_id, passenger_id, train_state, danger_duration, risk_level, reason, snapshot_path, status.
-- `alerts`: Real-time system logs.
-
-## 16. API Documentation
-- `GET /api/status`: System state
-- `POST /api/monitor/start`: Starts AI loop
-- `POST /api/monitor/stop`: Stops AI loop
-- `GET /api/incidents`: Fetch logs
-- `WS /ws/monitor`: Stream JSON telemetry and base64 MJPEG frames.
-
-## 17. Troubleshooting
-- **No Video Feed**: Ensure `demo.mp4` exists or a video is uploaded.
-- **WebSocket Disconnected**: Verify the FastAPI server is running on port 8000.
-- **Model Missing**: Ensure `yolov8n.pt` is in the project root.
-
-## 18. Demo Instructions
-Run the frontend and backend. Upload a video (or let it fallback to demo.mp4). Click "Start Monitoring". Observe the bounding boxes and real-time alerts.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF.svg)](https://docs.ultralytics.com/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC.svg)](https://tailwindcss.com/)
 
 ---
-### References
-1. Sehchan Oh, Sunghyuk Park, Changmu Lee, “A Platform Surveillance Monitoring System Using Image Processing for Passenger Safety in Railway Station,” Proceedings of the International Conference on Control, Automation and Systems (ICCAS 2007), Seoul, South Korea, pp. 394–398. https://ieeexplore.ieee.org/document/4406975
-2. Sehchan Oh, Sunghyuk Park, Changmu Lee, “Vision Based Platform Monitoring System for Railway Station Safety,” Proceedings of the 7th International Conference on ITS Telecommunications (ITST 2007). https://ieeexplore.ieee.org/document/4295854
-3. Joseph Redmon, Santosh Divvala, Ross Girshick, Ali Farhadi, “You Only Look Once: Unified, Real-Time Object Detection,” Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR 2016), pp. 779–788. https://openaccess.thecvf.com/content_cvpr_2016/papers/Redmon_You_Only_Look_CVPR_2016_paper.pdf
+
+## 1. Overview
+
+**RailGuard AI** is an automated computer-vision safety surveillance system designed for railway station platforms. Using state-of-the-art object detection (**YOLOv8**) and multi-object tracking (**BoT-SORT / ByteTrack**), RailGuard AI monitors passenger positions relative to a calibrated virtual danger zone (safety line) and evaluates risks in real time against the train's dynamic state (*Approaching*, *Stopped*, or *Departing*).
+
+When a passenger breaches the danger zone threshold (the **3-Second Rule**) during train movement, the system immediately raises visual alerts, triggers real-time telemetry streaming over WebSockets, and logs safety incidents to the database.
+
+---
+
+## 2. Key Features
+
+- **Live Platform Surveillance**: Real-time visual monitoring feed displaying passenger bounding boxes, foot positions, danger boundary, and tracker IDs.
+- **Train Motion State Detection**: Automatically determines train states (`APPROACHING`, `STOPPED`, `DEPARTING`) using horizontal centroid delta tracking.
+- **Dynamic 3-Second Rule Engine**:
+  - `Train APPROACHING + >= 3s in danger zone`: **CRITICAL** Alert
+  - `Train DEPARTING + >= 3s in danger zone`: **HIGH** Alert
+  - `Train STOPPED`: Normal boarding/disembarking monitoring with transit tracking
+- **Multi-Object Tracking**: Persistent ID assignment using BoT-SORT / ByteTrack.
+- **Interactive Command Center**: Modern, dark-themed responsive UI built with React 19, Lucide Icons, and Tailwind CSS.
+- **Incident History & Evidence**: Detailed incident table with risk level filtering, search, and full audit logs.
+- **Flexible Video Source**: Support for CCTV video uploads (`.mp4`), preloaded demo recordings, and automatic synthetic test video generation.
+
+---
+
+## 3. System Architecture
+
+```mermaid
+flowchart TD
+    VideoSource["Video Input (CCTV / Demo / Upload)"] --> AI_Engine["AI Detection & Processing Engine"]
+    AI_Engine --> Detection["YOLOv8 Object Detection (Person & Train)"]
+    Detection --> Tracking["BoT-SORT / ByteTrack Object Tracker"]
+    Tracking --> Zone["Virtual Danger Zone Cross-Product Evaluation"]
+    Zone --> Decision["Risk Engine (3-Second Rule + Train State)"]
+    Decision --> Backend["Starlette / FastAPI Python Backend"]
+    Backend --> SQLite["SQLite Database (railguard.db)"]
+    Backend --> WS["WebSocket Streaming (/ws/monitor) & REST API"]
+    WS --> Frontend["React 19 Command Center Dashboard"]
+```
+
+---
+
+## 4. Technology Stack
+
+- **Computer Vision & AI**: Ultralytics YOLOv8 Nano (`yolov8n.pt`), OpenCV, NumPy, BoT-SORT / ByteTrack
+- **Backend**: Python 3, Starlette / FastAPI, SQLite, Uvicorn, WebSockets
+- **Frontend**: React 19, Vite, Tailwind CSS, Lucide React, Axios
+
+---
+
+## 5. Model Weights & Large Files
+
+- **YOLOv8 Nano Model (`yolov8n.pt`)**: The lightweight weights file (~6.2 MB) is bundled in the repository root. If downloading manually or refreshing:
+  ```bash
+  # Download official YOLOv8n weights
+  curl -o yolov8n.pt -L https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt
+  ```
+- **Sample Test Videos (`data/input/`)**: Sample MP4 video files are located in `data/input/`. If no video is present, run `python scripts/generate_dummy_video.py` to generate an automated synthetic benchmark video.
+
+---
+
+## 6. Installation & Setup
+
+### Prerequisites
+- **Python 3.10+** (Python 3.11, 3.12, 3.13 supported)
+- **Node.js 18+** & npm
+
+---
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/SHREYASHUKLA2007/Railguard-AI.git
+cd Railguard-AI
+```
+
+---
+
+### Step 2: Backend Setup (Python)
+
+1. **Create and activate a virtual environment**:
+   - **Windows**:
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\activate
+     ```
+   - **Linux / macOS**:
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Verify AI & Model Setup**:
+   ```bash
+   python scripts/test_ai.py
+   ```
+
+---
+
+### Step 3: Frontend Setup (React + Vite)
+
+1. **Navigate to the frontend directory**:
+   ```bash
+   cd frontend
+   ```
+
+2. **Install npm packages**:
+   ```bash
+   npm install
+   ```
+
+3. **Build or develop**:
+   - Development server:
+     ```bash
+     npm run dev
+     ```
+   - Production build:
+     ```bash
+     npm run build
+     ```
+
+---
+
+## 7. Running RailGuard AI
+
+### Option A: Complete Integrated Server (Recommended)
+
+1. Build the frontend (from `frontend/` directory):
+   ```bash
+   npm run build
+   ```
+2. Start the backend server from the project root:
+   ```bash
+   python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+   ```
+   or simply:
+   ```bash
+   python backend/app/main.py
+   ```
+3. Open your browser at **http://localhost:8000**. The Starlette backend serves both the API and the compiled React command center.
+
+---
+
+### Option B: Concurrent Development Mode
+
+1. **Backend Terminal** (port 8000):
+   ```bash
+   uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+2. **Frontend Terminal** (port 5173):
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+3. Open **http://localhost:5173**.
+
+---
+
+## 8. Dashboard Navigation & Usage
+
+- **Overview**: Live CCTV platform stream, active threat indicators, summary statistics, and recent safety incident logs.
+- **Live Monitoring**: Dedicated full-screen camera view with video switcher, video upload facility, live risk level badge, and real-time bounding boxes.
+- **Incidents**: Searchable and filterable database table of all recorded safety infractions, risk levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), durations, and timestamps.
+- **Interactive Modals**: Click on any of the summary cards (Train Status, Safe Passengers, Danger Zone Violations, Critical Alerts) to inspect telemetry breakdowns.
+
+---
+
+## 9. API Reference
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/health` | `GET` | Health check endpoint |
+| `/api/status` | `GET` | Current system and monitoring status |
+| `/api/monitor/start` | `POST` | Start CV detection and video loop |
+| `/api/monitor/stop` | `POST` | Stop active video monitoring |
+| `/api/monitor/frame` | `GET` | Polling fallback for frame & telemetry |
+| `/api/incidents` | `GET` | Query incidents (supports `?risk=`, `?search=`, `?limit=`) |
+| `/api/incidents/seed` | `POST` | Seed sample incidents for demonstration |
+| `/api/videos` | `GET` | List available demo & uploaded videos |
+| `/api/video/select` | `POST` | Select active video input file |
+| `/api/video/upload` | `POST` | Upload custom CCTV MP4 video file |
+| `/ws/monitor` | `WebSocket` | Real-time bidirectional telemetry & frame stream |
+
+---
+
+## 10. Repository
+
+- **GitHub Repository**: [https://github.com/SHREYASHUKLA2007/Railguard-AI](https://github.com/SHREYASHUKLA2007/Railguard-AI)

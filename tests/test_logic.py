@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from ai_engine.decision_engine.risk_engine import RiskEngine
 
 def test_risk_safe_zone():
