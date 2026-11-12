@@ -15,13 +15,42 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route, WebSocketRoute, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, FileResponse
+from starlette.exceptions import HTTPException
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 # ──────────────────────────────────────────────
-# SQLite — no extra driver needed
+# Storage & SQLite setup
+# Compatible with local dev, Docker and Render Persistent Disks
+# ──────────────────────────────────────────────
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(ROOT_DIR, "railguard.db")
+
+DATA_DIR = os.environ.get("DATA_DIR")
+if DATA_DIR:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    DB_PATH = os.path.join(DATA_DIR, "railguard.db")
+    INPUT_DIR = os.path.join(DATA_DIR, "input")
+    os.makedirs(INPUT_DIR, exist_ok=True)
+    default_db = os.path.join(ROOT_DIR, "railguard.db")
+    if not os.path.exists(DB_PATH) and os.path.exists(default_db):
+        try:
+            shutil.copy2(default_db, DB_PATH)
+        except Exception:
+            pass
+    default_input = os.path.join(ROOT_DIR, "data", "input")
+    if os.path.exists(default_input):
+        try:
+            for item in os.listdir(default_input):
+                s = os.path.join(default_input, item)
+                d = os.path.join(INPUT_DIR, item)
+                if os.path.isfile(s) and not os.path.exists(d):
+                    shutil.copy2(s, d)
+        except Exception:
+            pass
+else:
+    DB_PATH = os.path.join(ROOT_DIR, "railguard.db")
+    INPUT_DIR = os.path.join(ROOT_DIR, "data", "input")
+    os.makedirs(INPUT_DIR, exist_ok=True)
 
 def _get_conn():
     conn = sqlite3.connect(DB_PATH)
@@ -126,9 +155,9 @@ def _processing_loop():
         processor = None
         using_ai = False
 
-    path = state["video_path"] or os.path.join(root, "data", "input", "demo.mp4")
+    path = state["video_path"] or os.path.join(INPUT_DIR, "demo.mp4")
     if not os.path.isabs(path):
-        path = os.path.join(root, path)
+        path = os.path.join(ROOT_DIR, path)
     cap = cv2.VideoCapture(path)
     if not cap.isOpened():
         print(f"[ERROR] Cannot open: {path}")
@@ -191,7 +220,7 @@ async def start_monitor(request: Request):
     if state["is_monitoring"]:
         return JSONResponse({"message": "Already monitoring"})
     if not state["video_path"]:
-        demo = os.path.join(ROOT_DIR, "data", "input", "demo.mp4")
+        demo = os.path.join(INPUT_DIR, "demo.mp4")
         if not os.path.exists(demo):
             _make_demo_video(demo)
         state["video_path"] = demo
@@ -208,9 +237,7 @@ async def upload_video(request: Request):
     video = form.get("file")
     if video is None:
         return JSONResponse({"error": "No file"}, status_code=400)
-    input_dir = os.path.join(ROOT_DIR, "data", "input")
-    os.makedirs(input_dir, exist_ok=True)
-    dest = os.path.join(input_dir, video.filename)
+    dest = os.path.join(INPUT_DIR, video.filename)
     content = await video.read()
     with open(dest, "wb") as f:
         f.write(content)
@@ -271,13 +298,11 @@ async def get_analytics(request: Request):
     })
 
 async def get_videos(request: Request):
-    input_dir = os.path.join(ROOT_DIR, "data", "input")
-    os.makedirs(input_dir, exist_ok=True)
     files = []
     current_active = os.path.basename(state["video_path"]) if state["video_path"] else "demo.mp4"
-    for f in os.listdir(input_dir):
+    for f in os.listdir(INPUT_DIR):
         if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-            full_p = os.path.join(input_dir, f)
+            full_p = os.path.join(INPUT_DIR, f)
             size_mb = round(os.path.getsize(full_p) / (1024 * 1024), 2)
             files.append({"filename": f, "size_mb": size_mb, "is_active": f == current_active})
     return JSONResponse({"videos": files, "current_video": current_active})
@@ -290,8 +315,7 @@ async def select_video(request: Request):
         filename = None
     if not filename:
         return JSONResponse({"error": "filename required"}, status_code=400)
-    input_dir = os.path.join(ROOT_DIR, "data", "input")
-    dest = os.path.join(input_dir, os.path.basename(filename))
+    dest = os.path.join(INPUT_DIR, os.path.basename(filename))
     if not os.path.exists(dest):
         return JSONResponse({"error": "Video file not found"}, status_code=404)
     state["video_path"] = dest
@@ -407,13 +431,24 @@ routes = [
     WebSocketRoute("/ws/monitor", ws_monitor),
 ]
 
-# Safely mount frontend static files if built; otherwise provide API root fallback
+class SPAStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as ex:
+            if ex.status_code == 404:
+                index_path = os.path.join(self.directory, "index.html")
+                if os.path.exists(index_path):
+                    return FileResponse(index_path)
+            raise
+
+# Mount frontend with SPA routing if built; otherwise provide API root fallback
 if os.path.isdir(frontend_dist):
-    routes.append(Mount("/", app=StaticFiles(directory=frontend_dist, html=True), name="frontend"))
+    routes.append(Mount("/", app=SPAStaticFiles(directory=frontend_dist, html=True), name="frontend"))
 else:
     async def root_fallback(request: Request):
         return JSONResponse({
-            "name": "RailGuard AI Backend API",
+            "name": "RailGuard AI Integrated Backend API",
             "status": "ONLINE",
             "docs": "/api/system/info",
             "health": "/api/health"
