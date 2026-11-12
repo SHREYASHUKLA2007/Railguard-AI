@@ -68,6 +68,10 @@ desktop.ini
 *.db-wal
 *.db-shm
 
+# Vercel CLI
+.vercel/
+frontend/.vercel/
+
 # Log Files
 *.log
 logs/

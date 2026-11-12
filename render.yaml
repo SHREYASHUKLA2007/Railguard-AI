@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: railguard-ai-backend
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: CORS_ORIGINS
+        value: https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app,https://railguard-ai-liard.vercel.app
+

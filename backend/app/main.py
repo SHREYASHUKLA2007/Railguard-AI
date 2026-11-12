@@ -405,17 +405,40 @@ routes = [
     Route("/api/analytics",       get_analytics),
     Route("/api/system/info",     get_system_info),
     WebSocketRoute("/ws/monitor", ws_monitor),
-    Mount("/", app=StaticFiles(directory=frontend_dist, html=True), name="frontend"),
 ]
+
+# Safely mount frontend static files if built; otherwise provide API root fallback
+if os.path.isdir(frontend_dist):
+    routes.append(Mount("/", app=StaticFiles(directory=frontend_dist, html=True), name="frontend"))
+else:
+    async def root_fallback(request: Request):
+        return JSONResponse({
+            "name": "RailGuard AI Backend API",
+            "status": "ONLINE",
+            "docs": "/api/system/info",
+            "health": "/api/health"
+        })
+    routes.append(Route("/", root_fallback))
+
+# Dynamic CORS configuration with support for environment overrides
+cors_origins_env = os.environ.get("CORS_ORIGINS")
+allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else ["*"]
 
 middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_methods=["*"],
         allow_headers=["*"],
+        allow_origin_regex=r"^https://.*\.vercel\.app$",
     )
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=port, reload=False)
+
 
