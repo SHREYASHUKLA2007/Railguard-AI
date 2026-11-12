@@ -196,6 +196,29 @@ cd Railguard-AI
 
 ---
 
-## 10. Repository
+## 10. Live Deployments & Repository
 
+- **Live Frontend (Vercel)**: [https://frontend-iota-woad-56.vercel.app](https://frontend-iota-woad-56.vercel.app)
+- **Production Backend (Render)**: [https://railguard-ai-backend.onrender.com](https://railguard-ai-backend.onrender.com)
 - **GitHub Repository**: [https://github.com/SHREYASHUKLA2007/Railguard-AI](https://github.com/SHREYASHUKLA2007/Railguard-AI)
+
+---
+
+## 11. Production Deployment Guide
+
+### A. Frontend Deployment (Vercel)
+- **Framework**: Vite / React 19
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variables**:
+  - `VITE_BACKEND_URL`: `https://railguard-ai-backend.onrender.com`
+
+### B. Backend Deployment (Render)
+- **Runtime**: Python 3.11.9
+- **Build Command**: `pip install --upgrade pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`
+- **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables**:
+  - `PYTHON_VERSION`: `3.11.9`
+  - `CORS_ORIGINS`: `https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app,https://railguard-ai-liard.vercel.app`
+
