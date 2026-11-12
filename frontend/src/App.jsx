@@ -9,10 +9,26 @@ import LiveMonitoringSection from './components/LiveMonitoringSection';
 import IncidentHistorySection from './components/IncidentHistorySection';
 
 // Dynamic API & WebSocket URLs based on environment or current browser window location
-const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
-const API_URL = BACKEND_URL
-  ? `${BACKEND_URL}/api`
-  : (typeof window !== 'undefined' ? window.location.origin + '/api' : '/api');
+const getBackendBaseUrl = () => {
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    // If running on Vercel, default to the canonical Render backend
+    if (window.location.hostname.endsWith('.vercel.app')) {
+      return 'https://railguard-ai-backend.onrender.com';
+    }
+    // Local development mode: if served from Vite port 5173, point to backend on 8000
+    if (window.location.port === '5173') {
+      return `${window.location.protocol}//${window.location.hostname}:8000`;
+    }
+    return window.location.origin;
+  }
+  return '';
+};
+
+const BACKEND_URL = getBackendBaseUrl();
+const API_URL = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
 const WS_BASE = BACKEND_URL
   ? BACKEND_URL.replace(/^http/, 'ws')
   : (typeof window !== 'undefined' ? (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host : '');
@@ -66,6 +82,7 @@ function Dashboard() {
   const [availableVideos, setAvailableVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState('demo.mp4');
   const [connectionMode, setConnectionMode] = useState('idle');
+  const [backendConnected, setBackendConnected] = useState(false);
   const wsRef = useRef(null);
 
   // Initial and periodic data fetch
@@ -78,22 +95,41 @@ function Dashboard() {
         axios.get(`${API_URL}/videos`),
       ]);
 
-      if (resStatus.status === 'fulfilled' && resStatus.value.data) {
+      let isConnected = false;
+      if (
+        resStatus.status === 'fulfilled' &&
+        resStatus.value?.data &&
+        typeof resStatus.value.data === 'object' &&
+        'is_monitoring' in resStatus.value.data
+      ) {
         setStatus(resStatus.value.data);
+        isConnected = true;
       }
-      if (resIncidents.status === 'fulfilled' && Array.isArray(resIncidents.value.data)) {
+      if (resIncidents.status === 'fulfilled' && Array.isArray(resIncidents.value?.data)) {
         setIncidents(resIncidents.value.data);
       }
-      if (resAnalytics.status === 'fulfilled' && resAnalytics.value.data) {
+      if (
+        resAnalytics.status === 'fulfilled' &&
+        resAnalytics.value?.data &&
+        typeof resAnalytics.value.data === 'object' &&
+        'total_incidents' in resAnalytics.value.data
+      ) {
         setAnalytics(resAnalytics.value.data);
       }
-      if (resVids.status === 'fulfilled' && resVids.value.data) {
+      if (
+        resVids.status === 'fulfilled' &&
+        resVids.value?.data &&
+        typeof resVids.value.data === 'object' &&
+        'videos' in resVids.value.data
+      ) {
         setAvailableVideos(resVids.value.data.videos || []);
         if (resVids.value.data.current_video) {
           setCurrentVideo(resVids.value.data.current_video);
         }
       }
+      setBackendConnected(isConnected);
     } catch (e) {
+      setBackendConnected(false);
       console.warn("Telemetry polling error:", e);
     }
   }, []);
@@ -191,7 +227,7 @@ function Dashboard() {
       const res = await axios.get(`${API_URL}/status`);
       if (res.data) setStatus(res.data);
     } catch (error) {
-      alert("Error toggling safety monitoring. Please verify backend is running on port 8000.");
+      alert("Error toggling safety monitoring. Please verify the RailGuard AI backend service is online.");
     }
   };
 
@@ -239,6 +275,7 @@ function Dashboard() {
           setActiveTab={setActiveTab}
           status={status}
           telemetry={telemetry}
+          backendConnected={backendConnected}
         />
 
         {/* 1. TOP DASHBOARD: Six Interactive Summary Cards */}

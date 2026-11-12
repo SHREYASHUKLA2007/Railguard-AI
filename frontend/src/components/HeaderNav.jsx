@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Activity, Video, Database, Clock } from 'lucide-react';
 
-export default function HeaderNav({ activeTab, setActiveTab, status, telemetry }) {
+export default function HeaderNav({ activeTab, setActiveTab, status, telemetry, backendConnected = true }) {
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -53,17 +53,29 @@ export default function HeaderNav({ activeTab, setActiveTab, status, telemetry }
           {/* System Online / Offline Badge */}
           <div
             className={`px-3 py-1.5 rounded-full border text-xs font-bold flex items-center gap-2 ${
-              status.is_monitoring
+              !backendConnected
+                ? 'border-amber-500/40 text-amber-400 bg-amber-500/10 shadow-sm shadow-amber-950'
+                : status.is_monitoring
                 ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10 shadow-sm shadow-emerald-950'
                 : 'border-slate-700 text-slate-400 bg-slate-900'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                status.is_monitoring ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                !backendConnected
+                  ? 'bg-amber-400 animate-pulse'
+                  : status.is_monitoring
+                  ? 'bg-emerald-400 animate-pulse'
+                  : 'bg-slate-500'
               }`}
             />
-            <span>{status.is_monitoring ? 'AI ENGINE ONLINE' : 'SYSTEM STANDBY'}</span>
+            <span>
+              {!backendConnected
+                ? 'BACKEND CONNECTING...'
+                : status.is_monitoring
+                ? 'AI ENGINE ONLINE'
+                : 'SYSTEM STANDBY'}
+            </span>
           </div>
         </div>
       </div>
