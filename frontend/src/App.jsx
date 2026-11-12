@@ -16,7 +16,7 @@ const getBackendBaseUrl = () => {
   if (typeof window !== 'undefined') {
     // If running on Vercel, default to the canonical Render backend
     if (window.location.hostname.endsWith('.vercel.app')) {
-      return 'https://railguard-ai-backend.onrender.com';
+      return 'https://railguard-ai.onrender.com';
     }
     // Local development mode: if served from Vite port 5173, point to backend on 8000
     if (window.location.port === '5173') {
