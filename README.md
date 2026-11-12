@@ -192,33 +192,53 @@ cd Railguard-AI
 | `/api/videos` | `GET` | List available demo & uploaded videos |
 | `/api/video/select` | `POST` | Select active video input file |
 | `/api/video/upload` | `POST` | Upload custom CCTV MP4 video file |
+| `/api/system/info` | `GET` | Full system audit, hardware, and model diagnostic info |
 | `/ws/monitor` | `WebSocket` | Real-time bidirectional telemetry & frame stream |
 
 ---
 
 ## 10. Live Deployments & Repository
 
-- **Live Frontend (Vercel)**: [https://frontend-iota-woad-56.vercel.app](https://frontend-iota-woad-56.vercel.app)
-- **Production Backend (Render)**: [https://railguard-ai-backend.onrender.com](https://railguard-ai-backend.onrender.com)
 - **GitHub Repository**: [https://github.com/SHREYASHUKLA2007/Railguard-AI](https://github.com/SHREYASHUKLA2007/Railguard-AI)
+- **Live Frontend (Vercel)**: [https://frontend-iota-woad-56.vercel.app](https://frontend-iota-woad-56.vercel.app)
+- **Unified Production Service (Render)**: [https://railguard-ai.onrender.com](https://railguard-ai.onrender.com)
 
 ---
 
 ## 11. Production Deployment Guide
 
-### A. Frontend Deployment (Vercel)
-- **Framework**: Vite / React 19
-- **Root Directory**: `frontend`
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-- **Environment Variables**:
-  - `VITE_BACKEND_URL`: `https://railguard-ai-backend.onrender.com`
+### Option 1: Unified Full-Stack Docker Deployment (Recommended)
+This approach serves the compiled React 19 SPA directly from the Starlette ASGI server in a single container. Eliminates cross-origin latency and handles WebSocket streaming natively.
 
-### B. Backend Deployment (Render)
-- **Runtime**: Python 3.11.9
-- **Build Command**: `pip install --upgrade pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`
-- **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+- **Platform**: Render (Web Service)
+- **Environment**: `Docker`
+- **Dockerfile Path**: `./Dockerfile`
+- **Health Check Path**: `/api/health`
 - **Environment Variables**:
+  - `PORT`: `10000` (Render provides this dynamically)
   - `PYTHON_VERSION`: `3.11.9`
-  - `CORS_ORIGINS`: `https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app,https://railguard-ai-liard.vercel.app`
+  - `CORS_ORIGINS`: `https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app`
+  - `DATA_DIR`: `/var/data` *(Optional: attach a persistent disk for persistent database storage)*
+
+### Option 2: Split Hosting (Vercel Frontend + Render Backend)
+- **Frontend on Vercel**:
+  - Root directory: `frontend`
+  - Build command: `npm run build`
+  - Output directory: `dist`
+  - Environment variable: `VITE_BACKEND_URL=https://<your-render-service>.onrender.com`
+- **Backend on Render**:
+  - Build command: `pip install --upgrade pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`
+  - Start command: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+
+---
+
+## 12. Environment Variables Reference
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `PORT` | Integer | `8000` / `10000` | Port for Uvicorn web server to bind to |
+| `CORS_ORIGINS` | String | `*` | Comma-separated list of allowed origins (e.g. Vercel URLs) |
+| `DATA_DIR` | String | *(None)* | Custom directory path for SQLite DB and video uploads (for persistent disks) |
+| `PYTHON_VERSION` | String | `3.11.9` | Target Python version |
+| `KMP_DUPLICATE_LIB_OK` | String | `TRUE` | Compatibility flag for PyTorch OpenMP on Windows / Linux containers |
 

@@ -204,10 +204,22 @@ def _processing_loop():
 # REST handlers
 # ──────────────────────────────────────────────
 async def health(request: Request):
-    return JSONResponse({"status": "ok", "time": datetime.utcnow().isoformat()})
+    model_path = os.path.join(ROOT_DIR, "yolov8n.pt")
+    return JSONResponse({
+        "status": "healthy",
+        "time": datetime.utcnow().isoformat(),
+        "ai_model_loaded": os.path.exists(model_path),
+        "database_connected": os.path.exists(DB_PATH)
+    })
 
 async def get_status(request: Request):
-    return JSONResponse({"is_monitoring": state["is_monitoring"]})
+    return JSONResponse({
+        "is_monitoring": state["is_monitoring"],
+        "train_state": state["telemetry"]["train_state"],
+        "safe_count": state["telemetry"]["safe_count"],
+        "danger_count": state["telemetry"]["danger_count"],
+        "alerts": state["telemetry"]["alerts"]
+    })
 
 async def get_frame(request: Request):
     return JSONResponse({
@@ -395,6 +407,12 @@ async def ws_monitor(websocket: WebSocket):
     await websocket.accept()
     ws_clients.append(websocket)
     try:
+        # Send initial connection & telemetry state
+        await websocket.send_text(json.dumps({
+            "type": "connection_established",
+            "is_monitoring": state["is_monitoring"],
+            "telemetry": state["telemetry"]
+        }))
         while True:
             if state["is_monitoring"] and state["frame_b64"]:
                 payload = json.dumps({
