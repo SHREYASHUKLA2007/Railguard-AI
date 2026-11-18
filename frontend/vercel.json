@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://railguard-ai.onrender.com/api/:path*"
+      "destination": "https://railguard-ai-popf.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

@@ -53,7 +53,7 @@ else:
     os.makedirs(INPUT_DIR, exist_ok=True)
 
 def _get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -75,7 +75,10 @@ def _init_db():
     conn.commit()
     conn.close()
 
-_init_db()
+try:
+    _init_db()
+except Exception as e:
+    print(f"[WARNING] Database init failed at {DB_PATH}: {e}")
 
 # ──────────────────────────────────────────────
 # Shared app state
@@ -434,7 +437,7 @@ async def ws_monitor(websocket: WebSocket):
 frontend_dist = os.path.join(ROOT_DIR, "frontend", "dist")
 
 routes = [
-    Route("/api/health",          health),
+    Route("/api/health",          health, methods=["GET", "HEAD"]),
     Route("/api/status",          get_status),
     Route("/api/monitor/frame",   get_frame),
     Route("/api/monitor/start",   start_monitor,  methods=["POST"]),
@@ -474,8 +477,20 @@ else:
     routes.append(Route("/", root_fallback))
 
 # Dynamic CORS configuration with support for environment overrides
+default_allowed = [
+    "https://railguard-ai-liard.vercel.app",
+    "https://railguard-ai.vercel.app",
+    "https://railguard-ai-popf.onrender.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
+]
 cors_origins_env = os.environ.get("CORS_ORIGINS")
-allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else ["*"]
+if cors_origins_env:
+    allowed_origins = list(set([o.strip() for o in cors_origins_env.split(",") if o.strip()] + default_allowed))
+else:
+    allowed_origins = ["*"]
 
 middleware = [
     Middleware(
@@ -483,7 +498,7 @@ middleware = [
         allow_origins=allowed_origins,
         allow_methods=["*"],
         allow_headers=["*"],
-        allow_origin_regex=r"^https://.*\.vercel\.app$",
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://.*\.vercel\.app$|^https://.*\.onrender\.com$",
     )
 ]
 
@@ -492,6 +507,13 @@ app = Starlette(routes=routes, middleware=middleware)
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(
+        "backend.app.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
+    )
 
 

@@ -1,15 +1,16 @@
 services:
   - type: web
-    name: railguard-ai
-    env: docker
+    name: Railguard-AI
+    runtime: python
     plan: free
     region: oregon
-    dockerfilePath: ./Dockerfile
+    buildCommand: pip install --upgrade pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
     healthCheckPath: /api/health
     envVars:
-      - key: PORT
-        value: 10000
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: KMP_DUPLICATE_LIB_OK
+        value: "TRUE"
       - key: CORS_ORIGINS
-        value: https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app,https://railguard-ai-liard.vercel.app
+        value: https://railguard-ai-popf.onrender.com,https://railguard-ai-liard.vercel.app,https://railguard-ai.vercel.app,https://railguard-9ih8xi8fb-shreya-shuklas-projects-8a138f10.vercel.app,http://localhost:5173,http://localhost:3000

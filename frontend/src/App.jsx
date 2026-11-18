@@ -14,13 +14,23 @@ const getBackendBaseUrl = () => {
     return import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
   }
   if (typeof window !== 'undefined') {
-    // If running on Vercel, default to the canonical Render backend
-    if (window.location.hostname.endsWith('.vercel.app')) {
-      return 'https://railguard-ai.onrender.com';
-    }
-    // Local development mode: if served from Vite port 5173, point to backend on 8000
-    if (window.location.port === '5173') {
+    // Local development mode: if served from Vite (port 5173, 5174, 3000, 4173, etc.), route to backend on 8000
+    if (
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      window.location.port !== '8000'
+    ) {
       return `${window.location.protocol}//${window.location.hostname}:8000`;
+    }
+    // If running on Vercel (e.g. railguard-ai-liard.vercel.app, preview deployments) or any external client domain
+    if (
+      window.location.hostname.endsWith('.vercel.app') ||
+      window.location.hostname.includes('railguard-ai-liard') ||
+      window.location.hostname.includes('railguard')
+    ) {
+      if (window.location.hostname.endsWith('.onrender.com')) {
+        return window.location.origin;
+      }
+      return 'https://railguard-ai-popf.onrender.com';
     }
     return window.location.origin;
   }
@@ -161,25 +171,7 @@ function Dashboard() {
     };
   }, [status.is_monitoring, connectionMode]);
 
-  // WebSocket lifecycle
-  useEffect(() => {
-    if (status.is_monitoring) {
-      connectWebSocket();
-    } else {
-      if (wsRef.current) {
-        try { wsRef.current.close(); } catch (e) {}
-      }
-      setConnectionMode('idle');
-      setFrame(null);
-    }
-    return () => {
-      if (wsRef.current) {
-        try { wsRef.current.close(); } catch (e) {}
-      }
-    };
-  }, [status.is_monitoring]);
-
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
     try {
       if (wsRef.current) {
         try { wsRef.current.close(); } catch (e) {}
@@ -215,7 +207,25 @@ function Dashboard() {
       console.warn("WebSocket initialization failed, using HTTP stream fallback:", err);
       setConnectionMode('http-fallback');
     }
-  };
+  }, [status.is_monitoring]);
+
+  // WebSocket lifecycle
+  useEffect(() => {
+    if (status.is_monitoring) {
+      connectWebSocket();
+    } else {
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch (e) {}
+      }
+      setConnectionMode('idle');
+      setFrame(null);
+    }
+    return () => {
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch (e) {}
+      }
+    };
+  }, [status.is_monitoring, connectWebSocket]);
 
   const toggleMonitoring = async () => {
     try {

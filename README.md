@@ -200,8 +200,8 @@ cd Railguard-AI
 ## 10. Live Deployments & Repository
 
 - **GitHub Repository**: [https://github.com/SHREYASHUKLA2007/Railguard-AI](https://github.com/SHREYASHUKLA2007/Railguard-AI)
-- **Live Frontend (Vercel)**: [https://frontend-iota-woad-56.vercel.app](https://frontend-iota-woad-56.vercel.app)
-- **Unified Production Service (Render)**: [https://railguard-ai.onrender.com](https://railguard-ai.onrender.com)
+- **Live Frontend (Vercel)**: [https://railguard-ai-liard.vercel.app](https://railguard-ai-liard.vercel.app)
+- **Unified Production Service (Render)**: [https://railguard-ai-popf.onrender.com](https://railguard-ai-popf.onrender.com)
 
 ---
 
@@ -217,7 +217,7 @@ This approach serves the compiled React 19 SPA directly from the Starlette ASGI 
 - **Environment Variables**:
   - `PORT`: `10000` (Render provides this dynamically)
   - `PYTHON_VERSION`: `3.11.9`
-  - `CORS_ORIGINS`: `https://frontend-iota-woad-56.vercel.app,https://frontend-shreya-shuklas-projects-8a138f10.vercel.app`
+  - `CORS_ORIGINS`: `https://railguard-ai-liard.vercel.app,https://railguard-ai.vercel.app,https://railguard-9ih8xi8fb-shreya-shuklas-projects-8a138f10.vercel.app`
   - `DATA_DIR`: `/var/data` *(Optional: attach a persistent disk for persistent database storage)*
 
 ### Option 2: Split Hosting (Vercel Frontend + Render Backend)
