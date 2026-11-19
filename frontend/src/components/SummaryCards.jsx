@@ -30,7 +30,7 @@ export default function SummaryCards({ telemetry, analytics, status, onOpenModal
       title: 'TRAIN STATUS',
       value: trainState,
       subtitle: trainStatusText,
-      trend: status.is_monitoring ? 'AI Active' : 'Offline',
+      trend: status.is_monitoring ? 'AI Active' : 'Ready',
       icon: Train,
       accentColor: trainColor,
       badgeColor: trainState === 'STOPPED' ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-300',

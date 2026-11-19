@@ -32,9 +32,9 @@ export default function LiveMonitoringSection({
 
   // Connection indicator status
   let statusBadge = (
-    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5">
-      <span className="w-2 h-2 rounded-full bg-slate-500" />
-      OFFLINE
+    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center gap-1.5">
+      <span className="w-2 h-2 rounded-full bg-blue-400" />
+      SYSTEM READY
     </span>
   );
   if (status.is_monitoring) {
@@ -149,25 +149,34 @@ export default function LiveMonitoringSection({
             alt="Live AI Safety Camera"
             className="w-full h-full object-contain max-h-[620px]"
           />
+        ) : status.is_monitoring ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
+            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
+            <h3 className="text-base font-bold text-slate-200">AI Feed Initializing...</h3>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              Loading platform safety camera stream and initializing YOLOv8 real-time detection...
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
-            <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 text-blue-400/60 shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 text-blue-400 shadow-inner">
               <Activity size={32} />
             </div>
-            <h3 className="text-base font-bold text-slate-200">Camera Feed Inactive</h3>
+            <h3 className="text-base font-bold text-slate-200">AI Monitoring Ready</h3>
             <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-              Click <strong>&quot;Start Monitoring&quot;</strong> above to initialize the AI inference pipeline, load the YOLOv8 model, and stream real-time platform tracking.
+              Click <strong>&quot;Start Monitoring Now&quot;</strong> to begin live platform video streaming, YOLOv8 passenger tracking, and danger zone analysis.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
               <button
                 onClick={onToggleMonitoring}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-md shadow-blue-900/40 cursor-pointer flex items-center gap-2"
               >
+                <Play size={14} fill="currentColor" />
                 Start Monitoring Now
               </button>
               <button
                 onClick={onSeedDemoData}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition"
+                className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition cursor-pointer"
               >
                 Seed Sample Records
               </button>

@@ -73,6 +73,30 @@ def _init_db():
         )
     """)
     conn.commit()
+    # Auto-seed sample incidents if table is empty
+    count = conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0]
+    if count == 0:
+        demo_items = [
+            ("APPROACHING", 4.2, "CRITICAL", "Passenger #102 in danger zone for 4.2s while train APPROACHING"),
+            ("APPROACHING", 3.8, "CRITICAL", "Passenger #105 in danger zone for 3.8s while train APPROACHING"),
+            ("DEPARTING",   3.5, "HIGH",     "Passenger #109 in danger zone for 3.5s while train DEPARTING"),
+            ("STOPPED",     5.1, "HIGH",     "Passenger #112 in danger zone for 5.1s while train STOPPED"),
+            ("APPROACHING", 2.2, "MEDIUM",   "Passenger #118 near platform edge threshold"),
+            ("STOPPED",     3.1, "HIGH",     "Passenger #121 crossed yellow line during boarding"),
+            ("DEPARTING",   4.0, "CRITICAL", "Passenger #125 ran alongside departing train"),
+            ("APPROACHING", 4.8, "CRITICAL", "Passenger #130 leaned over track while train approaching"),
+            ("STOPPED",     1.5, "LOW",      "Brief danger zone transit during disembarking"),
+            ("DEPARTING",   3.2, "HIGH",     "Passenger #134 stood on platform edge during departure"),
+        ]
+        import random
+        for state_val, dur, risk, rsn in demo_items:
+            pass_id = random.randint(101, 140)
+            conn.execute(
+                """INSERT INTO incidents (passenger_id, train_state, danger_duration, risk_level, reason)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (pass_id, state_val, dur, risk, rsn)
+            )
+        conn.commit()
     conn.close()
 
 try:

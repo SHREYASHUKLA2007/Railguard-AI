@@ -150,6 +150,23 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchAllData]);
 
+  // Auto-start live AI monitoring once backend connectivity is confirmed
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (backendConnected && !status.is_monitoring && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      axios.post(`${API_URL}/monitor/start`)
+        .then(() => axios.get(`${API_URL}/status`))
+        .then((res) => {
+          if (res?.data) {
+            setStatus(res.data);
+            fetchAllData();
+          }
+        })
+        .catch((e) => console.warn("Auto-start monitor notice:", e));
+    }
+  }, [backendConnected, status.is_monitoring, fetchAllData]);
+
   // Frame polling fallback: if WebSocket doesn't connect, poll /api/monitor/frame
   useEffect(() => {
     let framePoll;
